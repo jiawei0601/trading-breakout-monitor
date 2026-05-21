@@ -1,4 +1,4 @@
-// ===========================
+﻿// ===========================
 // Store.js — 資料層 (localStorage CRUD)
 // ===========================
 const STORAGE_KEY = 'trading_breakout_monitor_v1';

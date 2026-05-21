@@ -125,7 +125,7 @@ function renderStats() {
     <div class="stat-divider"></div>
     <div class="stat-item"><span class="stat-value">${stats.shrinkRatio}%</span><span class="stat-label">量縮天數比</span></div>
     <div class="stat-divider"></div>
-    <div class="stat-item"><span class="stat-value">${stats.avg5 !== '--' ? Number(stats.avg5).toLocaleString() : '--'}</span><span class="stat-label">近5日台股均價</span></div>
+    <div class="stat-item"><span class="stat-value">${stats.avg5 !== '--' ? Math.round(Number(stats.avg5)).toLocaleString() : '--'}</span><span class="stat-label">近5日均指</span></div>
     <div class="stat-divider"></div>
     <div class="stat-item"><span class="stat-value">${stats.inBoxRatio}%</span><span class="stat-label">箱內整理比</span></div>
   `;
@@ -140,8 +140,8 @@ function renderTimeline() {
   tl.innerHTML = entries.map(entry => {
     const hasData   = entry.taiexPrice !== null && entry.taiexPrice !== '';
     const dateLabel = formatDate(entry.date);
-    const taiexStr  = hasData ? Number(entry.taiexPrice).toLocaleString() : '--';
-    const nasdaqStr = entry.nasdaqPrice ? Number(entry.nasdaqPrice).toLocaleString() : '--';
+    const taiexStr  = hasData ? Math.round(Number(entry.taiexPrice)).toLocaleString() : '--';
+    const nasdaqStr = entry.nasdaqPrice ? Math.round(Number(entry.nasdaqPrice)).toLocaleString() : '--';
     const volStr    = entry.taiexVolume ? `${entry.taiexVolume} 億` : '--';
     const volOk     = entry.taiexVolume !== null && parseFloat(entry.taiexVolume) <= 4200;
 
@@ -166,9 +166,9 @@ function renderTimeline() {
         <div class="entry-body" id="body-${entry.date}" style="display:none">
           <div class="entry-form">
             <div class="form-row">
-              <label>台股收盤價<input type="number" id="tp-${entry.date}" value="${entry.taiexPrice ?? ''}" placeholder="41200" step="1"></label>
+              <label>TAIEX 台股指數<input type="number" id="tp-${entry.date}" value="${entry.taiexPrice ?? ''}" placeholder="41500" step="1"></label>
               <label>台股成交量（億）<input type="number" id="tv-${entry.date}" value="${entry.taiexVolume ?? ''}" placeholder="3800" step="10"></label>
-              <label>NASDAQ 收盤價<input type="number" id="np-${entry.date}" value="${entry.nasdaqPrice ?? ''}" placeholder="26200" step="1"></label>
+              <label>NASDAQ 進指<input type="number" id="np-${entry.date}" value="${entry.nasdaqPrice ?? ''}" placeholder="26200" step="1"></label>
             </div>
             <div class="form-checks">
               <label class="check-label"><input type="checkbox" ${entry.checkVolumeShrink ? 'checked' : ''} id="cv-${entry.date}"> ✅ 量能萎縮（≤4200億）</label>

@@ -1,7 +1,3 @@
-// ===========================
-// LiveData.js — 即時報價串接
-// 策略：後端 /api/price（伺服器端抓 Yahoo Finance）→ TradingView Widget
-// ===========================
 import { Effects } from './Effects.js';
 import { Engine }  from './Engine.js';
 
@@ -22,8 +18,8 @@ export const LiveData = {
 
   async _pollAll() {
     await Promise.all([
-      this._fetchPrice('TAIEX',  '0050.TW'),
-      this._fetchPrice('NASDAQ', '^NDX'),
+      this._fetchPrice('TAIEX',  '^TWII'),   // 台股加權指數
+      this._fetchPrice('NASDAQ', '^NDX'),    // 那斯達克 100
     ]);
   },
 
@@ -68,14 +64,15 @@ export const LiveData = {
     const prev      = this._prevTaiex;
     const dir       = prev !== null ? (price > prev ? 'up' : price < prev ? 'down' : null) : null;
 
-    // 以 changePct 判斷漲跌（相對昨收盤）
     const isUp = changePct >= 0;
-    el.textContent = price.toLocaleString('zh-TW', { minimumFractionDigits: 2 });
+    // 加權指數以整數點位顯示，加連這號
+    el.textContent = Math.round(price).toLocaleString('zh-TW');
     if (dir) Effects.blinkPrice(el, dir, 'tw');
 
     if (changeEl) {
-      const sign = isUp ? '+' : '';
-      changeEl.textContent = `${sign}${changePct.toFixed(2)}%`;
+      const sign    = isUp ? '+' : '';
+      const chgAmt  = data.changeAmt ?? 0;
+      changeEl.textContent = `${sign}${chgAmt.toFixed(0)} (${sign}${changePct.toFixed(2)}%)`;
       changeEl.className   = `live-change ${isUp ? 'tw-up' : 'tw-down'}`;
     }
 
@@ -86,7 +83,7 @@ export const LiveData = {
     // 市場狀態標籤
     if (subEl) {
       const stateMap = { REGULAR: '交易中', PRE: '盤前', POST: '盤後', CLOSED: '休市' };
-      subEl.textContent = `台灣 50 ETF ｜ ${stateMap[data.marketState] || data.marketState || ''} ｜ 昨收 ${(data.prevClose||0).toLocaleString()}`;
+      subEl.textContent = `台股加權指數 TAIEX ｜ ${stateMap[data.marketState] || data.marketState || ''} ｜ 昨收 ${Math.round(data.prevClose || 0).toLocaleString()}`;
     }
 
     this._prevTaiex = price;

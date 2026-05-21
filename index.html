@@ -67,18 +67,18 @@
     <div class="live-row">
       <div class="glass-card live-card" id="taiexLiveCard">
         <div class="live-market-tag">
-          <span>🇹🇼 0050.TW 即時報價</span>
+          <span>🇹🇼 TAIEX 台股加權指數即時報價</span>
           <span style="font-size:0.62rem;margin-left:auto;color:var(--text-mute)">紅漲・綠跌</span>
         </div>
         <div class="live-price-wrap">
           <span class="live-price" id="taiexLivePrice">--</span>
           <span class="live-change tw-up" id="taiexLiveChange">--%</span>
         </div>
-        <div class="live-sub" id="taiexSub">台灣 50 ETF／台股大盤代理指標</div>
+        <div class="live-sub" id="taiexSub">台灣加權股價指數（TAIEX / ^TWII）</div>
         <!-- TradingView 降級 Widget（僅在 API 失效時顯示）-->
         <div id="tvFallback" style="display:none">
           <div style="font-size:0.68rem;color:var(--text-mute);margin:0.5rem 0 0.25rem">⚠️ 降級至 TradingView 圖表</div>
-          <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tvWidget0050&symbol=TWSE%3A0050&interval=D&theme=dark&style=1&timezone=Asia%2FTaipei&locale=zh_TW&hide_side_toolbar=1&hideideas=1&hidevolume=0"
+          <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tvWidget0050&symbol=TVC%3ATAIEX&interval=D&theme=dark&style=1&timezone=Asia%2FTaipei&locale=zh_TW&hide_side_toolbar=1&hideideas=1&hidevolume=0"
             style="width:100%;height:200px;border:none;margin-top:0.25rem;border-radius:8px"
             allowtransparency="true" scrolling="no"></iframe>
         </div>
@@ -232,9 +232,9 @@
           📅 今日：${today.replace(/-/g,'/')}
         </div>
         <div class="form-row" style="margin-bottom:0.75rem">
-          <label>台股收盤<input type="number" id="q-tp" value="${entry?.taiexPrice ?? ''}" placeholder="41200"></label>
+          <label>TAIEX 指數<input type="number" id="q-tp" value="${entry?.taiexPrice ?? ''}" placeholder="41500"></label>
           <label>成交量(億)<input type="number" id="q-tv" value="${entry?.taiexVolume ?? ''}" placeholder="3800"></label>
-          <label>NASDAQ<input type="number" id="q-np" value="${entry?.nasdaqPrice ?? ''}" placeholder="26200"></label>
+          <label>NASDAQ 指數<input type="number" id="q-np" value="${entry?.nasdaqPrice ?? ''}" placeholder="26200"></label>
         </div>
         <div class="form-checks" style="margin-bottom:0.75rem">
           <label class="check-label"><input type="checkbox" id="q-cv" ${entry?.checkVolumeShrink?'checked':''}> ✅ 量縮</label>
