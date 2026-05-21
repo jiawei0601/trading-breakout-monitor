@@ -1,5 +1,6 @@
 // ===========================
 // main.js — 應用程式進入點與 UI 渲染
+// v1.1 修正：行情源改用 LiveData 模組，初始化順序調整
 // ===========================
 import { Store }   from './Store.js';
 import { Engine, STATES, THRESHOLDS } from './Engine.js';
