@@ -1,0 +1,18 @@
+{
+  "name": "trading-breakout-monitor",
+  "version": "1.1.0",
+  "description": "台美股區間突破紀律監控儀表板 — Glassmorphism Dark UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "@google/generative-ai": "^0.21.0"
+  }
+}

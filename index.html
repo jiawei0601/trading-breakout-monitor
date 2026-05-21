@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -74,7 +74,7 @@
           <span class="live-price" id="taiexLivePrice">--</span>
           <span class="live-change tw-up" id="taiexLiveChange">--%</span>
         </div>
-        <div class="live-sub">台灣 50 ETF／台股大盤代理指標</div>
+        <div class="live-sub" id="taiexSub">台灣 50 ETF／台股大盤代理指標</div>
         <!-- TradingView 降級 Widget（僅在 API 失效時顯示）-->
         <div id="tvFallback" style="display:none">
           <div style="font-size:0.68rem;color:var(--text-mute);margin:0.5rem 0 0.25rem">⚠️ 降級至 TradingView 圖表</div>
@@ -93,7 +93,7 @@
           <span class="live-price" id="nasdaqLivePrice">--</span>
           <span class="live-change us-up" id="nasdaqLiveChange">--%</span>
         </div>
-        <div class="live-sub">那斯達克 100 指數 CFD</div>
+        <div class="live-sub" id="nasdaqSub">那斯達克 100 指數 CFD</div>
         <!-- TradingView NDX 降級 Widget -->
         <div id="tvFallbackNdx" style="display:none">
           <div style="font-size:0.68rem;color:var(--text-mute);margin:0.5rem 0 0.25rem">⚠️ 降級至 TradingView 圖表</div>
@@ -170,21 +170,43 @@
           </table>
         </div>
 
-        <!-- Gemma4 提示區 -->
-        <div class="section-title" style="margin-top:1.5rem">🤖 Gemma4 AI 盤面分析</div>
+        <!-- Gemini 2.5 Pro 分析區 -->
+        <div class="section-title" style="margin-top:1.5rem">🧠 Gemini 2.5 Pro 盤面分析</div>
         <div class="glass-card" style="padding:1.25rem">
-          <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem">
-            由本地 Gemma4-26B 提供即時盤面解讀，點擊按鈕更新分析
+          <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>
+            由 Google Gemini 2.5 Pro 提供即時盤勢分析
           </div>
-          <div id="gemma4Analysis" style="font-size:0.82rem;color:var(--text-main);line-height:1.7;min-height:60px">
-            -- 尚未分析 --
+
+          <!-- 快速提問按鈕 -->
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem">
+            <button class="btn-preset" onclick="askGemini('目前台股大盤處於筱型盤整隀段，請用繁體中文分析目前展望與現该注意哪些風險，并給出操作建議')">&#x1F4CA; 台股展望分析</button>
+            <button class="btn-preset" onclick="askGemini('NASDAQ 100 目前處於盤整等待隀段，請用繁體中文分析 TQQQ/SQQQ 的風險報酬比，並給出策略建議')">&#x1F1FA;&#x1F1F8; NASDAQ 策略</button>
+            <button class="btn-preset" onclick="askGemini('如果台股在5/20起連續量縮，收盤維持在 40800~41800 筱體內，這種盤整模式通常持續多久？突破後的平均漲幅為何？')">&#x23F1; 盤整期分析</button>
           </div>
-          <button id="btnGemma4" class="btn-save" style="margin-top:0.75rem;width:100%" onclick="triggerGemma4Analysis()">
-            🧠 請 Gemma4 分析目前盤勢
-          </button>
-          <div id="gemma4Loading" style="display:none;text-align:center;padding:1rem;color:var(--text-dim);font-size:0.78rem">
-            ⏳ Gemma4 推理中，請稍候 30~60 秒...
+
+          <!-- 輸入框 -->
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+            <textarea id="geminiPrompt"
+              placeholder="輸入盤面問題讓 Gemini 2.5 Pro 分析..."
+              style="flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--card-border);border-radius:8px;padding:0.6rem 0.75rem;color:var(--text-main);font-family:var(--font-main);font-size:0.82rem;min-height:72px;resize:vertical;"
+              onkeydown="if(event.ctrlKey&&event.key==='Enter')callGeminiApi()"></textarea>
           </div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+            <button id="btnGemini" class="btn-save" style="flex:1" onclick="callGeminiApi()">
+              🧠 Gemini 分析 <span style="font-size:0.68rem;opacity:0.7">(Ctrl+Enter)</span>
+            </button>
+            <button onclick="clearGemini()" style="background:transparent;border:1px solid var(--card-border);border-radius:8px;padding:0.6rem 0.75rem;color:var(--text-dim);cursor:pointer;font-size:0.78rem">🗑️</button>
+          </div>
+
+          <!-- 輸出區 -->
+          <div id="geminiOutput"
+            style="font-size:0.82rem;color:var(--text-main);line-height:1.8;min-height:60px;padding:0.75rem;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid var(--card-border);white-space:pre-wrap;display:none">
+          </div>
+          <div id="geminiLoading" style="display:none;text-align:center;padding:1rem;color:var(--text-dim);font-size:0.78rem">
+            <span style="display:inline-block;animation:spin 1s linear infinite">⌛</span> Gemini 2.5 Pro 分析中...
+          </div>
+          <div id="geminiError" style="display:none;color:var(--red);font-size:0.78rem;padding:0.5rem"></div>
         </div>
       </div>
     </div>
@@ -264,15 +286,13 @@
       <button onclick="clearStorage()"   style="background:rgba(107,114,128,0.2);border:1px solid rgba(107,114,128,0.3);border-radius:8px;padding:0.4rem 0.8rem;color:#6b7280;font-size:0.72rem;cursor:pointer">🗑️ 清除 localStorage</button>
     </div>
   </div>
-
-  <!-- Gemma4 分析觸發 -->
+  <!-- Gemini 2.5 Pro + Debug 工具 -->
   <script>
-    // ---- Debug 工具 ----
+    // ════════════ Debug 測試工具 ════════════
     function toggleDebug() {
       const el = document.getElementById('debugTools');
       if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
     }
-
     async function testTaiwanBull() {
       const { Effects } = await import('./src/Effects.js');
       Effects.triggerParticleExplosion('#ef4444', '#fbbf24');
@@ -302,51 +322,86 @@
       }
     }
 
-    // ---- Gemma4 分析觸發 ----
-    window.triggerGemma4Analysis = async function() {
-      const btn     = document.getElementById('btnGemma4');
-      const loading = document.getElementById('gemma4Loading');
-      const output  = document.getElementById('gemma4Analysis');
-
-      if (btn) btn.style.display = 'none';
-      if (loading) loading.style.display = 'block';
-      if (output) output.textContent = '';
-
-      let summary = '';
-      let taiexNow = document.getElementById('taiexLivePrice')?.textContent || '--';
-      let nasdaqNow = document.getElementById('nasdaqLivePrice')?.textContent || '--';
-      let taiexState = document.getElementById('taiexStateBadge')?.textContent || '--';
-      let nasdaqState = document.getElementById('nasdaqStateBadge')?.textContent || '--';
-
+    // ════════════ Gemini 2.5 Pro API 整合 ════════════
+    function askGemini(prompt) {
+      const ta = document.getElementById('geminiPrompt');
+      if (ta) { ta.value = prompt; ta.focus(); }
+      callGeminiApi();
+    }
+    function clearGemini() {
+      ['geminiOutput','geminiError'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ''; el.style.display = 'none'; }
+      });
+      const p = document.getElementById('geminiPrompt');
+      if (p) p.value = '';
+    }
+    async function callGeminiApi() {
+      const promptEl  = document.getElementById('geminiPrompt');
+      const outputEl  = document.getElementById('geminiOutput');
+      const loadingEl = document.getElementById('geminiLoading');
+      const errorEl   = document.getElementById('geminiError');
+      const btnEl     = document.getElementById('btnGemini');
+      const userPrompt = promptEl?.value?.trim();
+      if (!userPrompt) { promptEl?.focus(); return; }
+      const ctx = {
+        taiexPrice:  document.getElementById('taiexLivePrice')?.textContent  || '未知',
+        nasdaqPrice: document.getElementById('nasdaqLivePrice')?.textContent || '未知',
+        taiexState:  document.getElementById('taiexStateBadge')?.textContent  || '未知',
+        nasdaqState: document.getElementById('nasdaqStateBadge')?.textContent || '未知',
+        taiexChg:    document.getElementById('taiexLiveChange')?.textContent  || '',
+        nasdaqChg:   document.getElementById('nasdaqLiveChange')?.textContent || '',
+      };
+      let logLines = '（尚無歷史紀錄）';
       try {
-        const raw = localStorage.getItem('trading_breakout_monitor_v1');
+        const raw  = localStorage.getItem('trading_breakout_monitor_v1');
         const data = raw ? JSON.parse(raw) : { entries: [] };
-        const recent = data.entries
-          .filter(e => e.taiexPrice)
-          .sort((a,b) => a.date.localeCompare(b.date))
-          .slice(-3);
-        summary = recent.map(e =>
-          `${e.date} 台股:${e.taiexPrice} 量:${e.taiexVolume}億 NASDAQ:${e.nasdaqPrice}`
-        ).join('；');
-      } catch (e) {}
-
-      setTimeout(() => {
-        if (loading) loading.style.display = 'none';
-        if (btn) btn.style.display = 'block';
-        if (output) {
-          output.innerHTML = `
-            <div style="padding:0.75rem;background:rgba(245,158,11,0.06);border-radius:8px;border:1px solid rgba(245,158,11,0.2)">
-              <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:0.5rem">🤖 Gemma4-26B 盤面解讀</div>
-              <div><b>即時行情</b>：台股 ${taiexNow} ｜ NASDAQ ${nasdaqNow}</div>
-              <div style="margin-top:0.5rem"><b>現況</b>：台股狀態 ${taiexState}，美股狀態 ${nasdaqState}</div>
-              <div style="margin-top:0.5rem">近期數據：${summary || '尚無數據'}</div>
-              <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-dim)">
-                ℹ️ 完整 Gemma4 AI 分析請透過 Antigravity Agent 介面觸發 <code>query_gemma4</code> 工具
-              </div>
-            </div>`;
+        const recent = data.entries.filter(e => e.taiexPrice)
+          .sort((a,b) => a.date.localeCompare(b.date)).slice(-5);
+        if (recent.length > 0) {
+          logLines = recent.map(e =>
+            `${e.date}：台股 ${e.taiexPrice}（量 ${e.taiexVolume ?? '--'} 億）, NASDAQ ${e.nasdaqPrice ?? '--'}`
+          ).join('\n');
         }
-      }, 1500);
-    };
+      } catch {}
+      const fullPrompt = `你是一位專業台美股操盤手與量化風險分析師，請用繁體中文回答。\n\n【即時行情（${new Date().toLocaleString('zh-TW')}）】\n台股 0050：${ctx.taiexPrice}（${ctx.taiexChg}）｜狀態：${ctx.taiexState}\nNASDAQ NDX：${ctx.nasdaqPrice}（${ctx.nasdaqChg}）｜狀態：${ctx.nasdaqState}\n\n【突破判定閾值】\n台股：多頭突破 > 42,500 ｜空頭破底 < 38,500 ｜箱體：40,800~41,800\nNASDAQ：多頭突破 > 26,800 ｜空頭破位 < 25,000\n\n【近期交易日誌】\n${logLines}\n\n【問題】\n${userPrompt}\n\n請提供簡潔、實用的分析（300字以內），聚焦交易紀律與風險管理，結尾給出明確建議。`;
+      if (btnEl)     btnEl.disabled = true;
+      if (loadingEl) loadingEl.style.display = 'block';
+      if (errorEl)   { errorEl.style.display = 'none';  errorEl.textContent  = ''; }
+      if (outputEl)  { outputEl.style.display = 'none'; outputEl.textContent = ''; }
+      try {
+        const res = await fetch('/api/gemini', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt }),
+          signal: AbortSignal.timeout(35000)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+        if (outputEl) {
+          outputEl.style.display = 'block';
+          outputEl.textContent = '';
+          const chars = [...data.text];
+          let i = 0;
+          const type = () => {
+            const chunk = Math.min(4, chars.length - i);
+            for (let j = 0; j < chunk; j++) outputEl.textContent += chars[i++];
+            if (i < chars.length) requestAnimationFrame(type);
+          };
+          requestAnimationFrame(type);
+        }
+      } catch (err) {
+        if (errorEl) {
+          errorEl.style.display = 'block';
+          let msg = `❌ ${err.message}`;
+          if (err.message.includes('GEMINI_API_KEY')) msg += '\n→ 請在 Railway 環境變數中設定 GEMINI_API_KEY';
+          if (err.message.includes('timeout'))        msg += '\n→ 請求逾時，請稍後再試';
+          errorEl.textContent = msg;
+        }
+      } finally {
+        if (btnEl)     btnEl.disabled = false;
+        if (loadingEl) loadingEl.style.display = 'none';
+      }
+    }
   </script>
 
 </body>
