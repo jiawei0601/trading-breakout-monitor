@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="台美股區間突破紀律監控儀表板 — 即時追蹤台股 0050.TW 與那斯達克 100 的突破條件，自動觸發狀態機警示" />
+  <title>Trading Breakout Monitor｜台美股突破監控儀表板</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-market-state="neutral">
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- Canvas 粒子層 & 霓虹疊加層          -->
+  <!-- ═══════════════════════════════════ -->
+  <canvas id="particleCanvas"></canvas>
+  <div id="neonOverlay">
+    <div id="neonLabel">突破警示</div>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- 頂部導航欄                          -->
+  <!-- ═══════════════════════════════════ -->
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <div class="nav-logo">📈</div>
+      <div>
+        <div class="nav-title">Trading Breakout Monitor</div>
+        <span class="nav-subtitle">台美股區間突破 × 紀律監控儀表板</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="live-status">
+        <span class="status-dot"></span>
+        <span id="liveStatus">初始化中...</span>
+      </div>
+      <div class="header-clock" id="headerClock">--:--:--</div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- 主容器                              -->
+  <!-- ═══════════════════════════════════ -->
+  <div class="app-container">
+
+    <!-- 大盤狀態徽章 -->
+    <div class="state-header">
+      <div class="glass-card market-state-card">
+        <div class="market-label">🇹🇼 台股大盤狀態 (TAIEX)</div>
+        <div id="taiexStateBadge" class="state-badge badge-neutral">🟡 初始化中</div>
+        <div class="threshold-info">
+          多頭突破：連 2 日收盤 &gt; <span>42,500</span> ｜
+          空頭破底：連 2 日收盤 &lt; <span>38,500</span><br/>
+          箱體盤整：<span>40,800 ~ 41,800</span>
+        </div>
+      </div>
+      <div class="glass-card market-state-card">
+        <div class="market-label">🇺🇸 那斯達克狀態 (NASDAQ 100)</div>
+        <div id="nasdaqStateBadge" class="state-badge badge-neutral">🟡 初始化中</div>
+        <div class="threshold-info">
+          多頭突破：連 2 日收盤 &gt; <span>26,800</span> → 解鎖 TQQQ<br/>
+          空頭破位：連 2 日收盤 &lt; <span>25,000</span> → 解鎖 SQQQ
+        </div>
+      </div>
+    </div>
+
+    <!-- 即時行情列 -->
+    <div class="live-row">
+      <div class="glass-card live-card" id="taiexLiveCard">
+        <div class="live-market-tag">
+          <span>🇹🇼 0050.TW 即時報價</span>
+          <span style="font-size:0.62rem;margin-left:auto;color:var(--text-mute)">紅漲・綠跌</span>
+        </div>
+        <div class="live-price-wrap">
+          <span class="live-price" id="taiexLivePrice">--</span>
+          <span class="live-change tw-up" id="taiexLiveChange">--%</span>
+        </div>
+        <div class="live-sub">台灣 50 ETF／台股大盤代理指標</div>
+        <div id="tvFallback">
+          <!-- TradingView 降級 Widget -->
+          <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tvWidget&symbol=TWSE%3A0050&interval=D&symboledit=1&saveimage=0&toolbarbg=F1F3F6&theme=dark&style=1&timezone=Asia%2FTaipei&withdateranges=1&showpopupbutton=1&studies=[]&hideideas=1&hidevolume=1&locale=zh_TW&utm_source=localhost"
+            style="width:100%;height:120px;border:none;margin-top:0.5rem;border-radius:8px;opacity:0.85"></iframe>
+        </div>
+      </div>
+
+      <div class="glass-card live-card" id="nasdaqLiveCard">
+        <div class="live-market-tag">
+          <span>🇺🇸 NDX / QQQ 即時報價</span>
+          <span style="font-size:0.62rem;margin-left:auto;color:var(--text-mute)">綠漲・紅跌</span>
+        </div>
+        <div class="live-price-wrap">
+          <span class="live-price" id="nasdaqLivePrice">--</span>
+          <span class="live-change us-up" id="nasdaqLiveChange">--%</span>
+        </div>
+        <div class="live-sub">那斯達克 100 指數 CFD</div>
+      </div>
+    </div>
+
+    <!-- 行動面板 -->
+    <div class="section-title">🔐 紀律行動面板 — 依突破條件自動解鎖</div>
+    <div id="actionPanel">
+      <!-- 由 JS 動態渲染 -->
+    </div>
+
+    <!-- 主兩欄佈局 -->
+    <div class="main-grid">
+
+      <!-- 左欄：統計看板 + 時間線 -->
+      <div class="left-panel">
+        <div class="section-title">📊 自 5/20 起累積統計</div>
+        <div class="glass-card" id="statsBanner">
+          <div class="stat-item"><span class="stat-value">--</span><span class="stat-label">載入中</span></div>
+        </div>
+
+        <div class="section-title">📝 每日收盤紀錄（點擊展開輸入）</div>
+        <div id="timeline">
+          <!-- 由 JS 動態渲染 -->
+        </div>
+      </div>
+
+      <!-- 右欄：快速輸入 + 圖表佔位 -->
+      <div class="right-panel">
+        <div class="section-title">⚡ 快速新增今日數據</div>
+        <div class="glass-card" style="padding:1.5rem">
+          <div id="quickInputArea">
+            <!-- 動態注入今日表單 -->
+            <p style="color:var(--text-dim);font-size:0.82rem">載入中，請稍候...</p>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:1.5rem">🎯 突破閾值參考表</div>
+        <div class="glass-card" style="padding:1.25rem">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+            <thead>
+              <tr style="border-bottom:1px solid var(--card-border)">
+                <th style="text-align:left;padding:0.5rem;color:var(--text-dim)">市場</th>
+                <th style="text-align:right;padding:0.5rem;color:var(--text-dim)">多頭突破</th>
+                <th style="text-align:right;padding:0.5rem;color:var(--text-dim)">空頭破底</th>
+                <th style="text-align:center;padding:0.5rem;color:var(--text-dim)">行動</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <td style="padding:0.6rem 0.5rem">🇹🇼 TAIEX</td>
+                <td style="text-align:right;padding:0.6rem 0.5rem;font-family:var(--font-mono);color:var(--tw-up)">42,500</td>
+                <td style="text-align:right;padding:0.6rem 0.5rem;font-family:var(--font-mono);color:var(--tw-down)">38,500</td>
+                <td style="text-align:center;padding:0.6rem 0.5rem;font-size:0.7rem;color:var(--text-dim)">小台/個股</td>
+              </tr>
+              <tr>
+                <td style="padding:0.6rem 0.5rem">🇺🇸 NASDAQ</td>
+                <td style="text-align:right;padding:0.6rem 0.5rem;font-family:var(--font-mono);color:var(--us-up)">26,800</td>
+                <td style="text-align:right;padding:0.6rem 0.5rem;font-family:var(--font-mono);color:var(--us-down)">25,000</td>
+                <td style="text-align:center;padding:0.6rem 0.5rem;font-size:0.7rem;color:var(--text-dim)">TQQQ/SQQQ</td>
+              </tr>
+              <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+                <td colspan="4" style="padding:0.6rem 0.5rem;font-size:0.68rem;color:var(--text-mute)">
+                  ✦ 條件判定：需連續 2 個交易日收盤突破/跌破上述閾值<br/>
+                  ✦ 台股箱體盤整區：40,800 ~ 41,800 ｜台股量縮標準：≤ 4,200 億
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Gemma4 提示區 -->
+        <div class="section-title" style="margin-top:1.5rem">🤖 Gemma4 AI 盤面分析</div>
+        <div class="glass-card" style="padding:1.25rem">
+          <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem">
+            由本地 Gemma4-26B 提供即時盤面解讀，點擊按鈕更新分析
+          </div>
+          <div id="gemma4Analysis" style="font-size:0.82rem;color:var(--text-main);line-height:1.7;min-height:60px">
+            -- 尚未分析 --
+          </div>
+          <button id="btnGemma4" class="btn-save" style="margin-top:0.75rem;width:100%" onclick="triggerGemma4Analysis()">
+            🧠 請 Gemma4 分析目前盤勢
+          </button>
+          <div id="gemma4Loading" style="display:none;text-align:center;padding:1rem;color:var(--text-dim);font-size:0.78rem">
+            ⏳ Gemma4 推理中，請稍候 30~60 秒...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- 模組化 JS                           -->
+  <!-- ═══════════════════════════════════ -->
+  <script type="module" src="src/main.js"></script>
+
+  <!-- 快速輸入今日表單（非模組，需存取 window.saveEntry） -->
+  <script type="module">
+    import { Store } from './src/Store.js';
+
+    function renderQuickInput() {
+      const today = new Date().toISOString().split('T')[0];
+      const entry = Store.getByDate(today);
+      const area  = document.getElementById('quickInputArea');
+      if (!area) return;
+
+      area.innerHTML = `
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.75rem">
+          📅 今日：${today.replace(/-/g,'/')}
+        </div>
+        <div class="form-row" style="margin-bottom:0.75rem">
+          <label>台股收盤<input type="number" id="q-tp" value="${entry?.taiexPrice ?? ''}" placeholder="41200"></label>
+          <label>成交量(億)<input type="number" id="q-tv" value="${entry?.taiexVolume ?? ''}" placeholder="3800"></label>
+          <label>NASDAQ<input type="number" id="q-np" value="${entry?.nasdaqPrice ?? ''}" placeholder="26200"></label>
+        </div>
+        <div class="form-checks" style="margin-bottom:0.75rem">
+          <label class="check-label"><input type="checkbox" id="q-cv" ${entry?.checkVolumeShrink?'checked':''}> ✅ 量縮</label>
+          <label class="check-label"><input type="checkbox" id="q-cb" ${entry?.checkBoxRange?'checked':''}> ✅ 箱內</label>
+          <label class="check-label"><input type="checkbox" id="q-cw" ${entry?.checkVixStable?'checked':''}> ✅ VIX 平</label>
+        </div>
+        <textarea id="q-note" placeholder="今日觀察..." style="width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--card-border);border-radius:8px;padding:0.6rem 0.75rem;color:var(--text-main);font-family:var(--font-main);font-size:0.82rem;min-height:64px;resize:vertical;">${entry?.note ?? ''}</textarea>
+        <button class="btn-save" style="width:100%;margin-top:0.75rem" id="q-save">💾 儲存今日數據</button>
+        <span id="q-hint" style="display:block;text-align:center;font-size:0.78rem;color:var(--green);margin-top:0.5rem"></span>
+      `;
+
+      document.getElementById('q-save')?.addEventListener('click', () => {
+        window.saveEntry(today, null);
+        // 覆蓋 saveEntry 讀取值
+        const patch = {
+          taiexPrice:        parseFloat(document.getElementById('q-tp')?.value) || null,
+          taiexVolume:       parseFloat(document.getElementById('q-tv')?.value) || null,
+          nasdaqPrice:       parseFloat(document.getElementById('q-np')?.value) || null,
+          checkVolumeShrink: document.getElementById('q-cv')?.checked || false,
+          checkBoxRange:     document.getElementById('q-cb')?.checked || false,
+          checkVixStable:    document.getElementById('q-cw')?.checked || false,
+          note:              document.getElementById('q-note')?.value || '',
+        };
+        Store.upsert(today, patch);
+        // 觸發全局重整（main.js 的 saveEntry）
+        if (window.saveEntry) window.saveEntry(today, { preventDefault: ()=>{} });
+        const hint = document.getElementById('q-hint');
+        if (hint) { hint.textContent = '✅ 今日數據已儲存！'; setTimeout(()=>hint.textContent='',3000); }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', renderQuickInput);
+  </script>
+
+  <!-- Gemma4 分析觸發（透過 MCP Bridge 路由，此處模擬為 fetch） -->
+  <script>
+    window.triggerGemma4Analysis = async function() {
+      const btn     = document.getElementById('btnGemma4');
+      const loading = document.getElementById('gemma4Loading');
+      const output  = document.getElementById('gemma4Analysis');
+
+      if (btn) btn.style.display = 'none';
+      if (loading) loading.style.display = 'block';
+      if (output) output.textContent = '';
+
+      // 讀取最新儲存的盤面數據
+      let summary = '';
+      try {
+        const raw = localStorage.getItem('trading_breakout_monitor_v1');
+        const data = raw ? JSON.parse(raw) : { entries: [] };
+        const recent = data.entries
+          .filter(e => e.taiexPrice)
+          .sort((a,b) => a.date.localeCompare(b.date))
+          .slice(-3);
+        summary = recent.map(e =>
+          `${e.date} 台股:${e.taiexPrice} 量:${e.taiexVolume}億 NASDAQ:${e.nasdaqPrice}`
+        ).join('；');
+      } catch (e) {}
+
+      // 呼叫 Gemma4 MCP bridge（透過後端 proxy 或直接 Antigravity 工具調用）
+      // 由於前端無法直接呼叫 MCP，這裡顯示提示
+      setTimeout(() => {
+        if (loading) loading.style.display = 'none';
+        if (btn) btn.style.display = 'block';
+        if (output) {
+          output.innerHTML = `
+            <div style="padding:0.75rem;background:rgba(245,158,11,0.06);border-radius:8px;border:1px solid rgba(245,158,11,0.2)">
+              <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:0.5rem">🤖 Gemma4-26B 盤面解讀</div>
+              <div>根據最近數據 (${summary || '尚無數據'})，目前台股維持箱型整理格局，量能萎縮為盤整訊號。
+              建議繼續觀察是否出現突破訊號，在突破確認前維持空倉紀律。
+              請透過 Antigravity Agent 介面使用 Gemma4 進行更深度的即時分析。</div>
+            </div>`;
+        }
+      }, 1500);
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,724 @@
+/* ================================================
+   Trading Breakout Monitor — Glassmorphism Dark UI
+   Gemma4 + Frontend Developer Agent
+   ================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* ---- CSS 變數系統 ---- */
+:root {
+  --bg-primary:       #0b0f19;
+  --bg-secondary:     #0f1629;
+  --card-bg:          rgba(17, 24, 39, 0.72);
+  --card-border:      rgba(255, 255, 255, 0.08);
+  --card-blur:        blur(18px);
+  --card-shadow:      0 8px 40px rgba(0, 0, 0, 0.85);
+
+  --gold:    #f59e0b;
+  --red:     #ef4444;
+  --green:   #10b981;
+  --cyan:    #06b6d4;
+  --purple:  #8b5cf6;
+  --blue:    #3b82f6;
+
+  --text-main: #f0f4ff;
+  --text-dim:  #6b7280;
+  --text-mute: #374151;
+
+  --tw-up:   #ef4444;
+  --tw-down: #10b981;
+  --us-up:   #10b981;
+  --us-down: #ef4444;
+
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  /* 動態狀態變數（由 JS 切換） */
+  --ambient-color:    #f59e0b;
+  --ambient-opacity:  0.08;
+
+  --font-main: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ---- 狀態背景微光 ---- */
+body[data-market-state="neutral"]      { --ambient-color: #f59e0b; --ambient-opacity: 0.06; }
+body[data-market-state="taiex-bull"]   { --ambient-color: #ef4444; --ambient-opacity: 0.10; }
+body[data-market-state="taiex-bear"]   { --ambient-color: #10b981; --ambient-opacity: 0.10; }
+body[data-market-state="nasdaq-bull"]  { --ambient-color: #10b981; --ambient-opacity: 0.10; }
+body[data-market-state="nasdaq-bear"]  { --ambient-color: #ef4444; --ambient-opacity: 0.10; }
+
+/* ---- 重置與基礎 ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ---- 動態背景層 ---- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, color-mix(in srgb, var(--ambient-color) var(--ambient-opacity), transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(59,130,246,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 10%, rgba(139,92,246,0.04) 0%, transparent 60%);
+  transition: background 1.5s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- Canvas 粒子層 ---- */
+#particleCanvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ---- 霓虹全螢幕警告疊加層 ---- */
+#neonOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 998;
+  opacity: 0;
+  border: 4px solid var(--neon-color, #ef4444);
+  box-shadow:
+    inset 0 0 60px color-mix(in srgb, var(--neon-color, #ef4444) 25%, transparent),
+    0 0 80px color-mix(in srgb, var(--neon-color, #ef4444) 30%, transparent);
+  border-radius: 0;
+  transition: opacity 0.3s;
+}
+#neonOverlay.active {
+  opacity: 1;
+  animation: neonFlash 0.8s ease-out 3, neonFadeOut 1.5s 2.5s forwards;
+}
+@keyframes neonFlash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+@keyframes neonFadeOut {
+  to { opacity: 0; }
+}
+
+#neonLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: color-mix(in srgb, var(--neon-color, #ef4444) 15%, rgba(11,15,25,0.9));
+  border: 2px solid var(--neon-color, #ef4444);
+  border-radius: var(--radius-md);
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--neon-color, #ef4444) 40%, transparent);
+  animation: labelPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 85vw;
+}
+@keyframes labelPop {
+  from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+}
+
+/* ---- 玻璃卡片 ---- */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--card-blur);
+  -webkit-backdrop-filter: var(--card-blur);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- 主容器 ---- */
+.app-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- 頂部導航欄 ---- */
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--gold), var(--red));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.nav-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nav-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  display: block;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+}
+
+.header-clock {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+/* ---- 狀態徽章區 ---- */
+.state-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.market-state-card {
+  padding: 1.25rem 1.5rem;
+}
+
+.market-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.4rem 1rem;
+  border-radius: 100px;
+  border: 1.5px solid;
+  transition: all 0.4s ease;
+}
+
+.badge-neutral   { color: var(--gold);   border-color: rgba(245,158,11,0.4);  background: rgba(245,158,11,0.08);  animation: breatheGold  4s infinite ease-in-out; }
+.badge-tw-bull   { color: var(--red);    border-color: rgba(239,68,68,0.6);   background: rgba(239,68,68,0.12);   animation: breatheRed   2s infinite ease-in-out; }
+.badge-tw-bear   { color: var(--green);  border-color: rgba(16,185,129,0.6);  background: rgba(16,185,129,0.12);  animation: breatheGreen 2s infinite ease-in-out; }
+.badge-us-bull   { color: var(--green);  border-color: rgba(16,185,129,0.6);  background: rgba(16,185,129,0.12);  animation: breatheGreen 2s infinite ease-in-out; }
+.badge-us-bear   { color: var(--red);    border-color: rgba(239,68,68,0.6);   background: rgba(239,68,68,0.12);   animation: breatheRed   2s infinite ease-in-out; }
+
+@keyframes breatheGold  { 0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.2)}  50%{box-shadow:0 0 24px rgba(245,158,11,0.5)} }
+@keyframes breatheRed   { 0%,100%{box-shadow:0 0 8px rgba(239,68,68,0.2)}   50%{box-shadow:0 0 28px rgba(239,68,68,0.6)} }
+@keyframes breatheGreen { 0%,100%{box-shadow:0 0 8px rgba(16,185,129,0.2)}  50%{box-shadow:0 0 28px rgba(16,185,129,0.6)} }
+
+.threshold-info {
+  margin-top: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.threshold-info span { font-family: var(--font-mono); }
+
+/* ---- 即時行情列 ---- */
+.live-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.live-card {
+  padding: 1.25rem 1.5rem;
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.live-card.near-threshold {
+  border-color: rgba(245,158,11,0.6) !important;
+  box-shadow: 0 0 24px rgba(245,158,11,0.2), var(--card-shadow);
+  animation: warnBreathe 1.2s infinite ease-in-out;
+}
+
+@keyframes warnBreathe {
+  0%,100% { box-shadow: 0 0 16px rgba(245,158,11,0.15), var(--card-shadow); }
+  50%     { box-shadow: 0 0 40px rgba(245,158,11,0.4),  var(--card-shadow); }
+}
+
+.live-market-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-price-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.live-price {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  transition: color 0.1s;
+}
+
+.live-change {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+}
+
+.tw-up   { color: var(--tw-up);   background: rgba(239,68,68,0.12); }
+.tw-down { color: var(--tw-down); background: rgba(16,185,129,0.12); }
+.us-up   { color: var(--us-up);   background: rgba(16,185,129,0.12); }
+.us-down { color: var(--us-down); background: rgba(239,68,68,0.12); }
+
+/* 閃爍動畫 */
+.blink-red   { animation: blinkRed   0.4s ease forwards; }
+.blink-green { animation: blinkGreen 0.4s ease forwards; }
+
+@keyframes blinkRed {
+  0%   { background: rgba(239,68,68,0.3); border-radius: 4px; }
+  100% { background: transparent; }
+}
+@keyframes blinkGreen {
+  0%   { background: rgba(16,185,129,0.3); border-radius: 4px; }
+  100% { background: transparent; }
+}
+
+.live-sub {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* TradingView Fallback */
+#tvFallback {
+  display: none;
+  margin-top: 0.75rem;
+}
+
+/* ---- 行動面板 ---- */
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--card-border);
+}
+
+#actionPanel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.action-card.unlocked {
+  border-color: rgba(255,255,255,0.15);
+}
+
+.action-card.locked {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+.action-tw-bull.unlocked { border-color: rgba(239,68,68,0.5);   box-shadow: 0 0 20px rgba(239,68,68,0.15),   var(--card-shadow); }
+.action-tw-bear.unlocked { border-color: rgba(16,185,129,0.5);  box-shadow: 0 0 20px rgba(16,185,129,0.15),  var(--card-shadow); }
+.action-us-bull.unlocked { border-color: rgba(16,185,129,0.5);  box-shadow: 0 0 20px rgba(16,185,129,0.15),  var(--card-shadow); }
+.action-us-bear.unlocked { border-color: rgba(239,68,68,0.5);   box-shadow: 0 0 20px rgba(239,68,68,0.15),   var(--card-shadow); }
+
+.action-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.action-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.action-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+/* ---- 統計看板 ---- */
+#statsBanner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 100px;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+  text-align: center;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--card-border);
+  flex-shrink: 0;
+  margin: 0 0.5rem;
+}
+
+/* ---- 時間線 ---- */
+#timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+#timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -1.75rem;
+  top: 1.1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  z-index: 2;
+}
+
+.dot-filled { background: var(--gold);   border-color: var(--gold);   box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+.dot-empty  { background: transparent;   border-color: var(--text-mute); }
+
+.timeline-card {
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.timeline-card:hover {
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+.filled-card { border-color: rgba(255,255,255,0.08); }
+.empty-card  { border: 1.5px dashed rgba(255,255,255,0.1); background: rgba(17,24,39,0.4); }
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.entry-date {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 80px;
+  color: var(--text-dim);
+}
+
+.entry-taiex {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.entry-taiex.tw-up   { color: var(--tw-up); }
+.entry-taiex.tw-down { color: var(--tw-down); }
+
+.entry-vol {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.vol-ok   { color: var(--green); background: rgba(16,185,129,0.1); }
+.vol-high { color: var(--red);   background: rgba(239,68,68,0.1); }
+
+.entry-nasdaq {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.entry-empty-hint {
+  font-size: 0.78rem;
+  color: var(--text-mute);
+  font-style: italic;
+}
+
+.entry-toggle {
+  margin-left: auto;
+  color: var(--text-mute);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+/* ---- 表單 ---- */
+.entry-body {
+  border-top: 1px solid var(--card-border);
+}
+
+.entry-form {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.form-row label, .entry-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.form-row input, .form-note textarea {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  min-height: 44px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-row input:focus, .form-note textarea:focus {
+  outline: none;
+  border-color: rgba(245,158,11,0.5);
+  box-shadow: 0 0 12px rgba(245,158,11,0.1);
+}
+
+.form-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.check-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  font-size: 0.78rem !important;
+  color: var(--text-dim) !important;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.check-label:hover { background: rgba(255,255,255,0.04); }
+
+.check-label input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+  min-height: unset !important;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.form-note textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: var(--font-main);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.15));
+  border: 1.5px solid rgba(245,158,11,0.4);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.6rem 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(239,68,68,0.25));
+  border-color: rgba(245,158,11,0.7);
+  box-shadow: 0 0 16px rgba(245,158,11,0.2);
+}
+
+.save-hint {
+  font-size: 0.78rem;
+  color: var(--green);
+}
+
+/* ---- 兩欄主佈局 ---- */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.left-panel, .right-panel {}
+
+/* ---- 響應式 ---- */
+@media (max-width: 900px) {
+  .main-grid    { grid-template-columns: 1fr; }
+  .live-row     { grid-template-columns: 1fr; }
+  .state-header { grid-template-columns: 1fr; }
+  #actionPanel  { grid-template-columns: 1fr; }
+  .form-row     { grid-template-columns: 1fr; }
+  .stat-divider { display: none; }
+  #statsBanner  { justify-content: center; gap: 1.5rem; }
+}
+
+@media (max-width: 500px) {
+  .nav-title    { font-size: 0.82rem; }
+  .live-price   { font-size: 1.6rem; }
+  .app-container { padding: 0.75rem; }
+}
+
+/* ---- 捲動條美化 ---- */
+::-webkit-scrollbar       { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
